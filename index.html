@@ -379,17 +379,19 @@ body { display: flex; flex-direction: column; align-items: center; }
 .badge-normal { background: #E8F5E9; color: #2E7D32; }
 .badge-recur { background: #E3F0FF; color: #1565C0; }
 .badge-cat { color: #fff; }
-.event-delete {
+.event-actions { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+.event-edit, .event-delete {
   background: none;
   border: none;
-  color: #CCC;
-  font-size: 18px;
+  font-size: 16px;
   cursor: pointer;
   padding: 0 2px;
   line-height: 1;
   transition: color 0.15s;
-  flex-shrink: 0;
 }
+.event-edit { color: #CCC; }
+.event-edit:active { color: #C4714A; }
+.event-delete { color: #CCC; }
 .event-delete:active { color: #D93025; }
 
 /* --- WEEK VIEW --- */
@@ -435,16 +437,18 @@ body { display: flex; flex-direction: column; align-items: center; }
 .task-body { flex: 1; min-width: 0; }
 .task-title { font-size: 14px; font-weight: 600; }
 .task-title.done { text-decoration: line-through; color: #AAA; }
-.task-delete {
+.task-actions { display: flex; gap: 2px; flex-shrink: 0; }
+.task-edit, .task-delete {
   background: none;
   border: none;
-  color: #CCC;
-  font-size: 18px;
+  font-size: 16px;
   cursor: pointer;
-  padding: 0 2px;
-  flex-shrink: 0;
+  padding: 0 3px;
   transition: color 0.15s;
 }
+.task-edit { color: #CCC; }
+.task-edit:active { color: #C4714A; }
+.task-delete { color: #CCC; }
 .task-delete:active { color: #D93025; }
 
 /* --- NOTES TAB --- */
@@ -814,8 +818,11 @@ let state = {
   taskFilter: 'all',
   tasksDate: toDateStr(new Date()),
   notesDate: toDateStr(new Date()),
-  modal: null,      // 'event' | 'task'
+  modal: null,        // 'event' | 'task'
   modalData: {},
+  editMode: false,
+  editOriginDate: null,
+  editIdx: null,
 };
 
 // --- RECURRENCE: compute effective events/tasks for a given date string ---
@@ -1091,7 +1098,12 @@ function makeEventCard(ev, dateStr) {
         ${recurLabel ? `<span class="badge badge-recur">${recurLabel}</span>` : ''}
       </div>
     </div>
-    ${isOrigin ? `<button class="event-delete" onclick="deleteEvent('${ev._originDate}',${ev._idx})">✕</button>` : '<div style="width:22px"></div>'}
+    ${isOrigin
+      ? `<div class="event-actions">
+           <button class="event-edit" onclick="editEvent('${ev._originDate}',${ev._idx})">✏️</button>
+           <button class="event-delete" onclick="deleteEvent('${ev._originDate}',${ev._idx})">✕</button>
+         </div>`
+      : '<div style="width:26px"></div>'}
   `;
   return card;
 }
@@ -1151,7 +1163,12 @@ function makeTaskCard(t, dateStr) {
         ${recurLabel ? `<span class="badge badge-recur">${recurLabel}</span>` : ''}
       </div>
     </div>
-    ${isOrigin ? `<button class="task-delete" onclick="deleteTask('${t._originDate}',${t._idx})">✕</button>` : '<div style="width:22px"></div>'}
+    ${isOrigin
+      ? `<div class="task-actions">
+           <button class="task-edit" onclick="editTask('${t._originDate}',${t._idx})">✏️</button>
+           <button class="task-delete" onclick="deleteTask('${t._originDate}',${t._idx})">✕</button>
+         </div>`
+      : '<div style="width:26px"></div>'}
   `;
   return card;
 }
@@ -1290,8 +1307,38 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 function openModal() {
   state.modal = state.currentTab === 'tarefas' ? 'task' : 'event';
   state.modalData = { cat: 'casa', priority: 'normal', recur: '' };
-  const title = state.modal === 'event' ? 'Novo Evento' : 'Nova Tarefa';
-  document.getElementById('modal-title').textContent = title;
+  state.editMode = false;
+  state.editOriginDate = null;
+  state.editIdx = null;
+  document.getElementById('modal-title').textContent = state.modal === 'event' ? 'Novo Evento' : 'Nova Tarefa';
+  buildModalBody();
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function editEvent(originDate, idx) {
+  const data = loadData();
+  const ev = (data.events[originDate] || [])[idx];
+  if (!ev) return;
+  state.modal = 'event';
+  state.editMode = true;
+  state.editOriginDate = originDate;
+  state.editIdx = idx;
+  state.modalData = { ...ev };
+  document.getElementById('modal-title').textContent = 'Editar Evento';
+  buildModalBody();
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function editTask(originDate, idx) {
+  const data = loadData();
+  const t = (data.tasks[originDate] || [])[idx];
+  if (!t) return;
+  state.modal = 'task';
+  state.editMode = true;
+  state.editOriginDate = originDate;
+  state.editIdx = idx;
+  state.modalData = { ...t };
+  document.getElementById('modal-title').textContent = 'Editar Tarefa';
   buildModalBody();
   document.getElementById('modal-overlay').classList.add('open');
 }
@@ -1373,17 +1420,35 @@ function saveModal() {
   if (state.modal === 'event') {
     const time = document.getElementById('m-time').value;
     const obs = document.getElementById('m-obs').value.trim();
-    const dateStr = state.selectedDate;
-    data.events[dateStr] = data.events[dateStr] || [];
-    data.events[dateStr].push({ title: md.title, time, cat: md.cat, priority: md.priority, recur: md.recur, obs });
+    const updated = { title: md.title, time, cat: md.cat, priority: md.priority, recur: md.recur, obs };
+
+    if (state.editMode) {
+      data.events[state.editOriginDate][state.editIdx] = {
+        ...data.events[state.editOriginDate][state.editIdx],
+        ...updated
+      };
+    } else {
+      const dateStr = state.selectedDate;
+      data.events[dateStr] = data.events[dateStr] || [];
+      data.events[dateStr].push(updated);
+    }
     saveData(data);
     renderCalendar();
     renderAgendaView();
     scheduleNotifications();
   } else {
-    const dateStr = state.tasksDate;
-    data.tasks[dateStr] = data.tasks[dateStr] || [];
-    data.tasks[dateStr].push({ title: md.title, cat: md.cat, priority: md.priority, recur: md.recur, done: false });
+    const updated = { title: md.title, cat: md.cat, priority: md.priority, recur: md.recur };
+
+    if (state.editMode) {
+      data.tasks[state.editOriginDate][state.editIdx] = {
+        ...data.tasks[state.editOriginDate][state.editIdx],
+        ...updated
+      };
+    } else {
+      const dateStr = state.tasksDate;
+      data.tasks[dateStr] = data.tasks[dateStr] || [];
+      data.tasks[dateStr].push({ ...updated, done: false });
+    }
     saveData(data);
     renderTasks();
     scheduleNotifications();
