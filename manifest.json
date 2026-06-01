@@ -1,0 +1,13 @@
+{
+  "name": "Agenda da Mãe",
+  "short_name": "Agenda Mãe",
+  "description": "Agenda pessoal com eventos, tarefas e notas",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F7F5F2",
+  "theme_color": "#C4714A",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

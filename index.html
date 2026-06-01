@@ -8,6 +8,8 @@
 <meta name="apple-mobile-web-app-title" content="Agenda Mãe">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#C4714A">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon.svg">
 <title>Agenda da Mãe</title>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -35,12 +37,149 @@ body { display: flex; flex-direction: column; align-items: center; }
   top: 0;
   z-index: 100;
 }
-#header-title {
+#header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 14px 16px 0;
+}
+#header-title {
   font-size: 18px;
   font-weight: 700;
   color: #C4714A;
 }
+#notif-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 8px;
+  transition: background 0.15s;
+  position: relative;
+}
+#notif-btn:active { background: #F0E8E2; }
+#notif-dot {
+  position: absolute;
+  top: 4px; right: 4px;
+  width: 8px; height: 8px;
+  background: #DC2626;
+  border-radius: 50%;
+  display: none;
+}
+
+/* --- NOTIFICATION BANNER --- */
+#notif-banner {
+  background: #FFF8F5;
+  border-bottom: 1px solid #F0D9CC;
+  padding: 10px 16px;
+  display: none;
+  align-items: center;
+  gap: 10px;
+}
+#notif-banner p { flex: 1; font-size: 13px; font-weight: 600; color: #7A4428; }
+#notif-banner-btn {
+  background: #C4714A;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+#notif-banner-dismiss {
+  background: none;
+  border: none;
+  color: #AAA;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+/* --- NOTIFICATION SETTINGS SHEET --- */
+#notif-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 300;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+}
+#notif-overlay.open { display: flex; }
+#notif-sheet {
+  background: #fff;
+  width: 100%;
+  max-width: 430px;
+  border-radius: 16px 16px 0 0;
+  padding: 0 0 24px;
+  animation: slideUp 0.25s ease-out;
+}
+.notif-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid #F5F1EC;
+}
+.notif-row-label { font-size: 14px; font-weight: 600; color: #2D2D2D; }
+.notif-row-sub { font-size: 12px; color: #999; margin-top: 1px; }
+.notif-toggle {
+  position: relative;
+  width: 44px; height: 24px;
+  flex-shrink: 0;
+}
+.notif-toggle input { opacity: 0; width: 0; height: 0; }
+.notif-slider {
+  position: absolute;
+  inset: 0;
+  background: #DDD;
+  border-radius: 24px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.notif-slider::before {
+  content: '';
+  position: absolute;
+  width: 18px; height: 18px;
+  left: 3px; top: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+.notif-toggle input:checked + .notif-slider { background: #C4714A; }
+.notif-toggle input:checked + .notif-slider::before { transform: translateX(20px); }
+.notif-input-sm {
+  border: 1.5px solid #E0DCD6;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2D2D2D;
+  background: #fff;
+  outline: none;
+  max-width: 120px;
+}
+.notif-input-sm:focus { border-color: #C4714A; }
+.notif-test-btn {
+  margin: 16px 16px 0;
+  background: #F5F1EC;
+  color: #7A4428;
+  border: none;
+  border-radius: 10px;
+  padding: 12px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  width: calc(100% - 32px);
+  transition: background 0.15s;
+}
+.notif-test-btn:active { background: #EDE3D8; }
 #tabs {
   display: flex;
   padding: 8px 16px 0;
@@ -472,7 +611,17 @@ body { display: flex; flex-direction: column; align-items: center; }
 
   <!-- HEADER -->
   <div id="header">
-    <div id="header-title">📅 Agenda da Mãe</div>
+    <div id="header-top">
+      <div id="header-title">📅 Agenda da Mãe</div>
+      <button id="notif-btn" onclick="openNotifSettings()" title="Notificações">
+        🔔<span id="notif-dot"></span>
+      </button>
+    </div>
+    <div id="notif-banner">
+      <p>🔔 Ative os lembretes para não perder nenhum compromisso</p>
+      <button id="notif-banner-btn" onclick="requestNotifPermission()">Ativar</button>
+      <button id="notif-banner-dismiss" onclick="dismissNotifBanner()">✕</button>
+    </div>
     <div id="tabs">
       <button class="tab-btn active" data-tab="agenda">Agenda</button>
       <button class="tab-btn" data-tab="tarefas">Tarefas</button>
@@ -556,6 +705,55 @@ body { display: flex; flex-direction: column; align-items: center; }
   <button id="fab" onclick="openModal()">+</button>
 
 </div><!-- /app -->
+
+<!-- NOTIFICATION SETTINGS SHEET -->
+<div id="notif-overlay" onclick="closeNotifOnOverlay(event)">
+  <div id="notif-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">🔔 Notificações</span>
+      <button class="modal-close" onclick="closeNotifSettings()">✕</button>
+    </div>
+    <div id="notif-permission-msg" style="display:none;padding:12px 16px;background:#FEF2F2;border-bottom:1px solid #FECACA;">
+      <p style="font-size:13px;color:#DC2626;font-weight:600;">⚠️ Permissão de notificação necessária. Clique em "Ativar" abaixo.</p>
+    </div>
+    <div class="notif-row">
+      <div>
+        <div class="notif-row-label">Resumo matinal</div>
+        <div class="notif-row-sub">Mostra os eventos e tarefas do dia</div>
+      </div>
+      <label class="notif-toggle">
+        <input type="checkbox" id="ns-summary-toggle" onchange="saveNotifSettingsUI()">
+        <span class="notif-slider"></span>
+      </label>
+    </div>
+    <div class="notif-row" id="ns-summary-time-row">
+      <div class="notif-row-label">Horário do resumo</div>
+      <input type="time" class="notif-input-sm" id="ns-summary-time" value="07:00" onchange="saveNotifSettingsUI()">
+    </div>
+    <div class="notif-row">
+      <div>
+        <div class="notif-row-label">Lembrete de eventos</div>
+        <div class="notif-row-sub">Avisa antes de cada evento</div>
+      </div>
+      <label class="notif-toggle">
+        <input type="checkbox" id="ns-remind-toggle" onchange="saveNotifSettingsUI()">
+        <span class="notif-slider"></span>
+      </label>
+    </div>
+    <div class="notif-row" id="ns-remind-mins-row">
+      <div class="notif-row-label">Antecedência</div>
+      <select class="notif-input-sm" id="ns-remind-mins" onchange="saveNotifSettingsUI()">
+        <option value="10">10 min</option>
+        <option value="15">15 min</option>
+        <option value="30" selected>30 min</option>
+        <option value="60">1 hora</option>
+      </select>
+    </div>
+    <button class="notif-test-btn" onclick="testNotification()">Enviar notificação de teste</button>
+    <div id="notif-status" style="text-align:center;font-size:12px;color:#888;padding:10px 16px 0;"></div>
+  </div>
+</div>
 
 <!-- MODAL -->
 <div id="modal-overlay" onclick="closeModalOnOverlay(event)">
@@ -1181,12 +1379,14 @@ function saveModal() {
     saveData(data);
     renderCalendar();
     renderAgendaView();
+    scheduleNotifications();
   } else {
     const dateStr = state.tasksDate;
     data.tasks[dateStr] = data.tasks[dateStr] || [];
     data.tasks[dateStr].push({ title: md.title, cat: md.cat, priority: md.priority, recur: md.recur, done: false });
     saveData(data);
     renderTasks();
+    scheduleNotifications();
   }
 
   closeModal();
@@ -1197,12 +1397,182 @@ function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// --- NOTIFICATIONS ---
+const NOTIF_KEY = 'notif_settings';
+const NOTIF_BANNER_KEY = 'notif_banner_dismissed';
+
+function loadNotifSettings() {
+  try { return JSON.parse(localStorage.getItem(NOTIF_KEY)) || {}; } catch { return {}; }
+}
+function saveNotifSettingsFull(s) { localStorage.setItem(NOTIF_KEY, JSON.stringify(s)); }
+
+function getNotifSettings() {
+  const s = loadNotifSettings();
+  return {
+    summaryEnabled: s.summaryEnabled !== false,
+    summaryTime: s.summaryTime || '07:00',
+    remindEnabled: s.remindEnabled !== false,
+    remindMins: s.remindMins || 30,
+  };
+}
+
+// Register service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+
+async function getSWReg() {
+  if (!('serviceWorker' in navigator)) return null;
+  try { return await navigator.serviceWorker.ready; } catch { return null; }
+}
+
+async function scheduleNotifications() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const reg = await getSWReg();
+  if (!reg || !reg.active) return;
+
+  const s = getNotifSettings();
+  const notifications = [];
+  const now = Date.now();
+  const today = toDateStr(new Date());
+  const tomorrow = toDateStr(new Date(Date.now() + 86400000));
+
+  // Daily summary for today and tomorrow
+  if (s.summaryEnabled) {
+    [today, tomorrow].forEach(dateStr => {
+      const [h, m] = s.summaryTime.split(':').map(Number);
+      const fireDate = parseDateStr(dateStr);
+      fireDate.setHours(h, m, 0, 0);
+      if (fireDate.getTime() > now) {
+        const evs = getEventsForDate(dateStr);
+        const tasks = getTasksForDate(dateStr);
+        const label = dateStr === today ? 'hoje' : 'amanhã';
+        notifications.push({
+          id: `summary_${dateStr}`,
+          title: '📅 Agenda da Mãe',
+          body: `Bom dia! Você tem ${evs.length} evento(s) e ${tasks.length} tarefa(s) ${label}.`,
+          fireAt: fireDate.getTime()
+        });
+      }
+    });
+  }
+
+  // Event reminders
+  if (s.remindEnabled) {
+    const mins = Number(s.remindMins);
+    [today, tomorrow].forEach(dateStr => {
+      getEventsForDate(dateStr).forEach(ev => {
+        if (!ev.time) return;
+        const [h, m] = ev.time.split(':').map(Number);
+        const evDate = parseDateStr(dateStr);
+        evDate.setHours(h, m, 0, 0);
+        const fireAt = evDate.getTime() - mins * 60000;
+        if (fireAt > now) {
+          const label = mins >= 60 ? `${mins/60}h` : `${mins} min`;
+          notifications.push({
+            id: `ev_${ev._originDate}_${ev._idx}_${dateStr}`,
+            title: `🔔 ${ev.title}`,
+            body: `em ${label} — ${ev.time}${ev.obs ? ' · ' + ev.obs : ''}`,
+            fireAt
+          });
+        }
+      });
+    });
+  }
+
+  reg.active.postMessage({ action: 'schedule', notifications });
+}
+
+async function testNotification() {
+  const perm = await requestNotifPermission();
+  if (!perm) return;
+  const reg = await getSWReg();
+  if (reg && reg.active) {
+    reg.active.postMessage({ action: 'test' });
+    document.getElementById('notif-status').textContent = 'Notificação enviada!';
+    setTimeout(() => { document.getElementById('notif-status').textContent = ''; }, 3000);
+  }
+}
+
+async function requestNotifPermission() {
+  if (!('Notification' in window)) {
+    alert('Seu navegador não suporta notificações.');
+    return false;
+  }
+  if (Notification.permission === 'granted') return true;
+  if (Notification.permission === 'denied') {
+    alert('Notificações bloqueadas. Abra as configurações do navegador e permita notificações para este site.');
+    return false;
+  }
+  const result = await Notification.requestPermission();
+  if (result === 'granted') {
+    hideBanner();
+    updateNotifDot();
+    scheduleNotifications();
+    return true;
+  }
+  return false;
+}
+
+function showBanner() {
+  if (localStorage.getItem(NOTIF_BANNER_KEY)) return;
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'granted') return;
+  document.getElementById('notif-banner').style.display = 'flex';
+}
+function hideBanner() { document.getElementById('notif-banner').style.display = 'none'; }
+function dismissNotifBanner() {
+  hideBanner();
+  localStorage.setItem(NOTIF_BANNER_KEY, '1');
+}
+
+function updateNotifDot() {
+  const dot = document.getElementById('notif-dot');
+  const hasPermission = 'Notification' in window && Notification.permission === 'granted';
+  dot.style.display = hasPermission ? 'none' : 'block';
+}
+
+// Notification settings sheet
+function openNotifSettings() {
+  const s = getNotifSettings();
+  document.getElementById('ns-summary-toggle').checked = s.summaryEnabled;
+  document.getElementById('ns-summary-time').value = s.summaryTime;
+  document.getElementById('ns-remind-toggle').checked = s.remindEnabled;
+  document.getElementById('ns-remind-mins').value = String(s.remindMins);
+  const noPermission = !('Notification' in window) || Notification.permission !== 'granted';
+  document.getElementById('notif-permission-msg').style.display = noPermission ? 'block' : 'none';
+  if (noPermission) {
+    document.querySelector('#notif-permission-msg p').innerHTML =
+      '⚠️ Notificações não ativadas. <button onclick="requestNotifPermission()" style="color:#C4714A;background:none;border:none;font-weight:700;cursor:pointer;font-family:Nunito,sans-serif;">Ativar agora</button>';
+  }
+  document.getElementById('notif-overlay').classList.add('open');
+}
+function closeNotifSettings() { document.getElementById('notif-overlay').classList.remove('open'); }
+function closeNotifOnOverlay(e) { if (e.target === document.getElementById('notif-overlay')) closeNotifSettings(); }
+
+function saveNotifSettingsUI() {
+  const s = {
+    summaryEnabled: document.getElementById('ns-summary-toggle').checked,
+    summaryTime: document.getElementById('ns-summary-time').value,
+    remindEnabled: document.getElementById('ns-remind-toggle').checked,
+    remindMins: Number(document.getElementById('ns-remind-mins').value),
+  };
+  saveNotifSettingsFull(s);
+  scheduleNotifications();
+}
+
 // --- INIT ---
 (function init() {
   renderCalendar();
   renderAgendaView();
   renderTasks();
   renderNotes();
+  updateNotifDot();
+  showBanner();
+  // Re-schedule on each app open
+  if ('Notification' in window && Notification.permission === 'granted') {
+    scheduleNotifications();
+  }
 })();
 </script>
 </body>
