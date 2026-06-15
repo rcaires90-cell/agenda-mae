@@ -1279,9 +1279,10 @@ async function signupUser() {
   if (!email || !password) { showAuthMsg('Preencha e-mail e senha.', 'error'); return; }
   if (password.length < 6) { showAuthMsg('A senha deve ter pelo menos 6 caracteres.', 'error'); return; }
   setAuthLoading(true);
-  const { error } = await sb.auth.signUp({ email, password });
+  const { data, error } = await sb.auth.signUp({ email, password });
   setAuthLoading(false);
   if (error) showAuthMsg(error.message, 'error');
+  else if (data.session) showAuthMsg('Conta criada! Entrando...', 'success');
   else showAuthMsg('Conta criada! Verifique seu e-mail para confirmar.', 'success');
 }
 
